@@ -44,8 +44,9 @@ for i in $(seq 1 30); do
   fi
 done
 
-echo "✅ Done! Fetching file list from repo..."
+echo "✅ Workflow done! Downloading and cleaning up..."
 
+# Find and download the fetched file, then delete it from the repo
 FILES=$(curl -s -H "Authorization: token $PAT" \
   "https://api.github.com/repos/$REPO/contents/config/" \
   | python3 -c "
@@ -53,12 +54,15 @@ import json, sys
 files = json.load(sys.stdin)
 for f in files:
     if f['name'] != 'fetch-url.txt':
-        print(f['name'], f['download_url'])
+        print(f['name'], f['download_url'], f['sha'])
 ")
 
-echo ""
-echo "📁 Files in config/:"
-while IFS=' ' read -r name dl_url; do
-  echo "  $name"
-  echo "  ↳ $dl_url"
+while IFS=' ' read -r name dl_url sha; do
+  echo "📥 Downloading: $name"
+  curl -s -L -o "$name" "$dl_url"
+  echo "🗑️  Deleting from repo: $name"
+  curl -s -X DELETE -H "Authorization: token $PAT" \
+    "https://api.github.com/repos/$REPO/contents/config/$name" \
+    -d "{\"message\": \"cleanup: remove $name\", \"sha\": \"$sha\", \"branch\": \"$BRANCH\"}" > /dev/null
+  echo "✅ Saved locally: $(pwd)/$name"
 done <<< "$FILES"
