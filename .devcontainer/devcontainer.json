@@ -1,0 +1,13 @@
+{
+  "name": "proxy",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "forwardPorts": [8080],
+  "portsAttributes": {
+    "8080": {
+      "label": "Proxy",
+      "onAutoForward": "silent",
+      "visibility": "public"
+    }
+  },
+  "postStartCommand": "python3 /workspaces/innocent-claude/proxy.py &"
+}
