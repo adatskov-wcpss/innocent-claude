@@ -1,15 +1,15 @@
-name: Fetch Etsy Image
+name: Fetch File
 
 on:
   push:
     paths:
-      - 'config/image-url.txt'
+      - 'config/fetch-url.txt'
 
 permissions:
   contents: write
 
 jobs:
-  fetch-image:
+  fetch-file:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -18,36 +18,40 @@ jobs:
       - name: Read and Validate URL
         id: validate
         run: |
-          URL=$(cat config/image-url.txt | tr -d '[:space:]')
-          
-          # Only allow URLs from i.etsystatic.com
-          if [[ ! "$URL" =~ ^https://i\.etsystatic\.com/ ]]; then
-            echo "ERROR: URL must start with https://i.etsystatic.com/"
-            exit 1
-          fi
-          
+          URL=$(cat config/fetch-url.txt | tr -d '[:space:]')
+          echo "Fetching: $URL"
           echo "url=$URL" >> $GITHUB_OUTPUT
 
-      - name: Download Image
+      - name: Download File
         run: |
           URL="${{ steps.validate.outputs.url }}"
           cd config/
           curl -L -O "$URL"
           
-          # Verify it's actually an image
-          FILE=$(ls -t | head -1)
+          # Get the downloaded file (most recent)
+          FILE=$(ls -t | grep -v 'fetch-url.txt' | head -1)
           MIME=$(file --mime-type -b "$FILE")
-          if [[ ! "$MIME" =~ ^image/ ]]; then
-            echo "ERROR: Downloaded file is not an image ($MIME)"
+          echo "Downloaded: $FILE ($MIME)"
+          
+          # Allow image/* and text/code types
+          if [[ "$MIME" =~ ^image/ ]] || \
+             [[ "$MIME" =~ ^text/ ]] || \
+             [[ "$MIME" == "application/javascript" ]] || \
+             [[ "$MIME" == "application/json" ]] || \
+             [[ "$MIME" == "application/xml" ]] || \
+             [[ "$MIME" == "application/x-httpd-php" ]] || \
+             [[ "$MIME" == "application/wasm" ]]; then
+            echo "✅ File type allowed: $MIME"
+          else
+            echo "❌ File type not allowed: $MIME"
             rm "$FILE"
             exit 1
           fi
 
-      - name: Commit Image
+      - name: Commit File
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add config/
-          git commit -m "chore: fetch etsy image [skip ci]" || echo "No changes"
+          git commit -m "chore: fetched $(cat config/fetch-url.txt | tr -d '[:space:]' | xargs basename) [skip ci]" || echo "No changes"
           git push
-
