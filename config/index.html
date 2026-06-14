@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ax.</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@200;300;400&family=Space+Mono&family=Playfair+Display:ital@1&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --gold:#c9a84c;
+      --gold-dim:rgba(201,168,76,.07);
+      --gold-border:rgba(201,168,76,.28);
+      --bg:#080808;
+      --text:#eae5dc;
+      --muted:rgba(234,229,220,.38);
+      --faint:rgba(234,229,220,.12);
+      --line:rgba(255,255,255,.065);
+      --glass:rgba(255,255,255,.038);
+    }
+
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    html{height:100%;}
+    body{
+      background:var(--bg);
+      color:var(--text);
+      font-family:'Sora',sans-serif;
+      min-height:100vh;
+      overflow-x:hidden;
+      cursor:none;
+    }
+
+    /* dot grid */
+    body::before{
+      content:'';
+      position:fixed;inset:0;
+      background-image:radial-gradient(circle,rgba(255,255,255,.065) 1px,transparent 1px);
+      background-size:38px 38px;
+      background-position:var(--gx,0px) var(--gy,0px);
+      z-index:0;pointer-events:none;
+      transition:background-position 1.2s cubic-bezier(.23,1,.32,1);
+    }
+
+    /* grain */
+    body::after{
+      content:'';position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.028;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.68' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23g)'/%3E%3C/svg%3E");
+      background-size:240px 240px;
+    }
+
+    /* cursor */
+    #cr{
+      position:fixed;width:34px;height:34px;
+      border:1px solid rgba(201,168,76,.4);
+      border-radius:50%;
+      transform:translate(-50%,-50%);
+      pointer-events:none;z-index:9999;
+      transition:width .25s,height .25s,border-color .25s;
+      will-change:left,top;
+    }
+    #cr.big{width:52px;height:52px;border-color:rgba(201,168,76,.75);}
+    #cd{
+      position:fixed;width:3px;height:3px;background:var(--gold);
+      border-radius:50%;transform:translate(-50%,-50%);
+      pointer-events:none;z-index:10000;
+    }
+
+    /* nav */
+    nav{
+      position:fixed;top:0;left:0;right:0;z-index:500;
+      padding:1.7rem 3rem;
+      display:flex;align-items:center;justify-content:space-between;
+    }
+    .logo{
+      font-family:'Space Mono',monospace;font-size:.95rem;
+      color:var(--text);text-decoration:none;cursor:none;letter-spacing:-.02em;
+    }
+    .logo em{color:var(--gold);font-style:normal;}
+    .pill{
+      display:flex;background:rgba(255,255,255,.034);
+      border:1px solid var(--line);border-radius:100px;
+      padding:.26rem;gap:.08rem;
+      backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    }
+    .tab{
+      font-family:'Sora',sans-serif;font-size:.7rem;font-weight:300;
+      letter-spacing:.1em;text-transform:uppercase;
+      color:var(--muted);background:none;border:none;
+      padding:.42rem 1.1rem;border-radius:100px;
+      cursor:none;transition:color .2s,background .2s;
+    }
+    .tab:hover{color:var(--text);}
+    .tab.on{
+      background:rgba(255,255,255,.085);color:var(--text);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.07);
+    }
+
+    /* sections */
+    main{position:relative;z-index:2;}
+    .sec{
+      position:absolute;inset:0;min-height:100vh;
+      display:flex;align-items:center;
+      padding:6.5rem 3rem 4rem;
+      opacity:0;pointer-events:none;
+      transform:translateY(14px);
+      transition:opacity .5s cubic-bezier(.23,1,.32,1),transform .5s cubic-bezier(.23,1,.32,1);
+    }
+    .sec.on{opacity:1;pointer-events:all;transform:translateY(0);position:relative;}
+
+    /* ── HOME ── */
+    .hero{width:100%;max-width:1080px;margin:0 auto;}
+    .hero-label{
+      font-family:'Space Mono',monospace;font-size:.62rem;
+      letter-spacing:.22em;color:var(--faint);text-transform:uppercase;
+      display:flex;align-items:center;gap:1rem;margin-bottom:2.8rem;
+      opacity:0;animation:fadeUp .7s .1s cubic-bezier(.23,1,.32,1) forwards;
+    }
+    .hero-label::after{content:'';width:48px;height:1px;background:var(--faint);}
+    h1.hero-title{
+      font-weight:200;line-height:1.0;letter-spacing:-.04em;
+      margin-bottom:3.5rem;
+      opacity:0;animation:fadeUp .7s .25s cubic-bezier(.23,1,.32,1) forwards;
+    }
+    .line-static{display:block;font-size:clamp(4.5rem,10vw,8.5rem);color:var(--text);}
+    .line-typed{
+      display:block;
+      font-family:'JetBrains Mono',monospace;
+      font-size:clamp(3.8rem,9vw,7.5rem);color:var(--gold);min-height:1.05em;
+    }
+    .cur{
+      display:inline-block;width:3px;height:.72em;
+      background:var(--gold);vertical-align:middle;margin-left:3px;
+      border-radius:1px;animation:blink .9s step-end infinite;
+    }
+    @keyframes blink{50%{opacity:0}}
+    .hero-bottom{
+      display:flex;align-items:flex-end;justify-content:space-between;
+      gap:2rem;flex-wrap:wrap;
+      opacity:0;animation:fadeUp .7s .45s cubic-bezier(.23,1,.32,1) forwards;
+    }
+    .hero-desc{font-size:.875rem;font-weight:300;color:var(--muted);line-height:1.9;max-width:360px;}
+    .mag{position:relative;display:inline-block;padding:1.2rem;margin:-1.2rem;}
+    .cta{
+      display:inline-flex;align-items:center;gap:.65rem;
+      background:none;border:1px solid var(--line);color:var(--muted);
+      font-family:'Sora',sans-serif;font-size:.75rem;font-weight:300;
+      letter-spacing:.1em;text-transform:uppercase;
+      padding:.85rem 1.75rem;border-radius:100px;
+      cursor:none;transition:border-color .25s,color .25s,background .25s;
+      white-space:nowrap;position:relative;z-index:1;
+    }
+    .cta:hover{border-color:var(--gold-border);color:var(--gold);background:var(--gold-dim);}
+    .cta .arr{transition:transform .3s cubic-bezier(.23,1,.32,1);display:inline-block;}
+    .cta:hover .arr{transform:translateX(4px);}
+
+    /* ── PROJECTS ── */
+    #projects{align-items:flex-start;padding-top:7rem;min-height:100vh;}
+    .proj-wrap{width:100%;max-width:1080px;margin:0 auto;}
+    .proj-head{
+      display:flex;align-items:baseline;justify-content:space-between;
+      padding-bottom:1rem;border-bottom:1px solid var(--line);margin-bottom:2.5rem;
+    }
+    .ph-l{font-family:'Space Mono',monospace;font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);}
+    .ph-r{font-family:'Space Mono',monospace;font-size:.62rem;letter-spacing:.1em;color:var(--faint);}
+
+    /* card grid */
+    .cards{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:1.4rem;
+    }
+    @media(max-width:680px){.cards{grid-template-columns:1fr;}}
+
+    /* individual card */
+    .card{
+      background:var(--glass);
+      border:1px solid var(--line);
+      border-radius:24px;
+      padding:2.4rem;
+      position:relative;
+      overflow:hidden;
+      transition:border-color .35s,box-shadow .35s,transform .08s;
+      transform-style:preserve-3d;
+      opacity:0;
+      transform:translateY(16px);
+      transition:opacity .5s cubic-bezier(.23,1,.32,1),
+                  transform .5s cubic-bezier(.23,1,.32,1),
+                  border-color .35s,box-shadow .35s;
+      backdrop-filter:blur(16px);
+      -webkit-backdrop-filter:blur(16px);
+      cursor:none;
+    }
+    .card.visible{opacity:1;transform:translateY(0);}
+
+    /* top sheen */
+    .card::after{
+      content:'';
+      position:absolute;top:0;left:15%;right:15%;height:1px;
+      background:linear-gradient(to right,transparent,rgba(255,255,255,.1),transparent);
+    }
+
+    /* cursor-follow light */
+    .card-light{
+      position:absolute;inset:0;
+      background:radial-gradient(380px circle at var(--mx,-100px) var(--my,-100px),rgba(201,168,76,.07),transparent 60%);
+      opacity:0;transition:opacity .3s;border-radius:24px;pointer-events:none;
+    }
+    .card:hover .card-light{opacity:1;}
+    .card:hover{
+      border-color:rgba(255,255,255,.11);
+      box-shadow:0 20px 60px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.07);
+    }
+
+    /* ghost index number */
+    .card-ghost{
+      position:absolute;top:-.8rem;right:1.2rem;
+      font-family:'Space Mono',monospace;font-size:7rem;font-weight:400;
+      color:rgba(255,255,255,.028);line-height:1;
+      pointer-events:none;user-select:none;
+      transition:color .4s,transform .4s cubic-bezier(.23,1,.32,1);
+    }
+    .card:hover .card-ghost{color:rgba(255,255,255,.05);transform:translateY(-6px);}
+
+    /* card content */
+    .card-tag{
+      display:inline-block;
+      font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;
+      color:var(--gold);background:var(--gold-dim);
+      border:1px solid rgba(201,168,76,.18);
+      padding:.22rem .7rem;border-radius:100px;
+      margin-bottom:1.3rem;
+    }
+    .card-name{
+      font-size:1.65rem;font-weight:200;letter-spacing:-.025em;
+      color:var(--text);line-height:1.1;margin-bottom:1rem;
+      transition:color .25s;
+    }
+    .card:hover .card-name{color:rgba(234,229,220,.92);}
+    .card-desc{
+      font-size:.83rem;font-weight:300;color:var(--muted);
+      line-height:1.85;margin-bottom:1.8rem;
+    }
+
+    /* icon slot */
+    .card-icon{
+      width:56px;
+      height:56px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.03);
+      overflow:hidden;
+      flex-shrink:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+    }
+    .card-icon img,
+    .card-icon svg{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+
+    .card-top{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:1rem;
+      margin-bottom:1rem;
+      position:relative;
+      z-index:1;
+    }
+
+    /* card footer */
+    .card-foot{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;}
+    .card-stack{display:flex;gap:.35rem;flex-wrap:wrap;}
+    .spill{
+      font-size:.58rem;letter-spacing:.1em;
+      color:var(--faint);
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.065);
+      padding:.2rem .6rem;border-radius:100px;
+    }
+
+    /* visit button */
+    .card-btn{
+      display:inline-flex;align-items:center;gap:.5rem;
+      background:none;
+      border:1px solid var(--line);
+      color:var(--muted);
+      font-family:'Sora',sans-serif;
+      font-size:.68rem;font-weight:300;letter-spacing:.1em;text-transform:uppercase;
+      padding:.6rem 1.2rem;border-radius:100px;
+      text-decoration:none;
+      cursor:none;
+      transition:border-color .25s,color .25s,background .25s,transform .2s;
+      white-space:nowrap;
+      flex-shrink:0;
+    }
+    .card-btn:hover{
+      border-color:var(--gold-border);color:var(--gold);
+      background:var(--gold-dim);transform:translateY(-1px);
+    }
+    .card-btn .barr{
+      display:inline-block;font-size:.75rem;
+      transition:transform .3s cubic-bezier(.23,1,.32,1);
+    }
+    .card-btn:hover .barr{transform:translate(2px,-2px);}
+
+    /* stagger delays */
+    .card:nth-child(1){transition-delay:0s,.0s,.0s,.0s;}
+    .card.visible:nth-child(1){transition-delay:.1s;}
+    .card.visible:nth-child(2){transition-delay:.22s;}
+
+    @keyframes fadeUp{to{opacity:1;transform:translateY(0);}}
+  </style>
+</head>
+<body>
+
+  <div id="cr"></div>
+  <div id="cd"></div>
+
+  <nav>
+    <a class="logo"><em>ax</em>.</a>
+    <div class="pill">
+      <button class="tab on" data-to="home">Home</button>
+      <button class="tab" data-to="projects">Projects</button>
+    </div>
+  </nav>
+
+  <main>
+
+    <!-- HOME -->
+    <section class="sec on" id="home">
+      <div class="hero">
+        <div class="hero-label">Portfolio — 2025</div>
+        <h1 class="hero-title">
+          <span class="line-typed"><span id="typer"></span><span class="cur"></span></span>
+        </h1>
+        <div class="hero-bottom">
+          <p class="hero-desc">
+            Developer and creator. Building at the edge of what a browser
+            can do — with intention, and an eye for the details that most people skip.
+          </p>
+          <div class="mag" id="mag">
+            <button class="cta" id="cta-btn">
+              View Projects <span class="arr">→</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROJECTS -->
+    <section class="sec" id="projects">
+      <div class="proj-wrap">
+        <div class="proj-head">
+          <span class="ph-l">Selected Projects</span>
+          <span class="ph-r">02 / 2026</span>
+        </div>
+
+        <div class="cards">
+
+          <!-- Card 01 -->
+          <div class="card" id="c1">
+            <div class="card-light"></div>
+            <div class="card-ghost"></div>
+            <div class="card-top">
+              <div class="card-tag">Test</div>
+              <div class="card-icon">
+                <img src="assets/test.png" alt="">
+              </div>
+            </div>
+            <div class="card-name">Test Page</div>
+            <p class="card-desc">
+              A simple test page for this website
+            </p>
+            <div class="card-foot">
+              <div class="card-stack">
+                <span class="spill">Secure</span>
+                <span class="spill">HTML/CSS/JS</span>
+              </div>
+              <a class="card-btn" href="/test.html" target="_blank" rel="noopener">
+                Visit <span class="barr">↗</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Card 02 -->
+          <div class="card" id="c2">
+            <div class="card-light"></div>
+            <div class="card-ghost"></div>
+            <div class="card-top">
+              <div class="card-icon">
+                <img src="assets/bio-ico.png" alt="">
+              </div>
+            </div>
+            <div class="card-name">My Bio</div>
+            <p class="card-desc">
+              Just your average bio, which is inspired by my friends
+              haunted.pw bio
+            </p>
+            <div class="card-foot">
+              <div class="card-stack">
+                <span class="spill">HTML</span>
+                <span class="spill">TailWindCSS</span>
+                <span class="spill">smthn nice</span>
+              </div>
+              <a class="card-btn" href="https://alexdatskov.bsite.net/" target="_blank" rel="noopener">
+                Visit <span class="barr">↗</span>
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+<script>
+/* cursor */
+const cr=document.getElementById('cr'),cd=document.getElementById('cd');
+let mx=window.innerWidth/2,my=window.innerHeight/2,rx=mx,ry=my;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cd.style.left=mx+'px';cd.style.top=my+'px';});
+(function loop(){rx+=(mx-rx)*.09;ry+=(my-ry)*.09;cr.style.left=rx+'px';cr.style.top=ry+'px';requestAnimationFrame(loop);})();
+document.querySelectorAll('button,a,.card').forEach(el=>{
+  el.addEventListener('mouseenter',()=>cr.classList.add('big'));
+  el.addEventListener('mouseleave',()=>cr.classList.remove('big'));
+});
+
+/* dot grid parallax */
+document.addEventListener('mousemove',e=>{
+  document.body.style.setProperty('--gx',((e.clientX/window.innerWidth)-.5)*12+'px');
+  document.body.style.setProperty('--gy',((e.clientY/window.innerHeight)-.5)*12+'px');
+});
+
+/* sections */
+const secs={home:document.getElementById('home'),projects:document.getElementById('projects')};
+function go(id){
+  Object.values(secs).forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  secs[id].classList.add('on');
+  document.querySelector(`.tab[data-to="${id}"]`).classList.add('on');
+  if(id==='projects') revealCards();
+}
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>go(t.dataset.to)));
+document.getElementById('cta-btn').addEventListener('click',()=>go('projects'));
+
+function revealCards(){
+  document.querySelectorAll('.card').forEach(c=>c.classList.remove('visible'));
+  document.querySelectorAll('.card').forEach((c,i)=>{
+    setTimeout(()=>c.classList.add('visible'),80+i*140);
+  });
+}
+
+/* card tilt + cursor light */
+document.querySelectorAll('.card').forEach(card=>{
+  const light=card.querySelector('.card-light');
+  card.addEventListener('mousemove',e=>{
+    const r=card.getBoundingClientRect();
+    const x=e.clientX-r.left, y=e.clientY-r.top;
+    const cx=r.width/2, cy=r.height/2;
+    const rotX=(y-cy)/cy*-5;
+    const rotY=(x-cx)/cx*6;
+    card.style.transform=`perspective(900px) rotateX(${rotX}deg) rotateY(${rotY}deg) translateZ(6px)`;
+    light.style.setProperty('--mx',x+'px');
+    light.style.setProperty('--my',y+'px');
+  });
+  card.addEventListener('mouseleave',()=>{
+    card.style.transform='';
+  });
+  // pass mouse pos to CSS
+  card.addEventListener('mousemove',e=>{
+    const r=card.getBoundingClientRect();
+    card.style.setProperty('--mx',(e.clientX-r.left)+'px');
+    card.style.setProperty('--my',(e.clientY-r.top)+'px');
+  });
+});
+
+/* magnetic button */
+const mag=document.getElementById('mag'),btn=document.getElementById('cta-btn');
+mag.addEventListener('mousemove',e=>{
+  const r=btn.getBoundingClientRect();
+  const dx=e.clientX-(r.left+r.width/2), dy=e.clientY-(r.top+r.height/2);
+  btn.style.transition='transform .1s,border-color .25s,color .25s,background .25s';
+  btn.style.transform=`translate(${dx*.28}px,${dy*.28}px)`;
+});
+mag.addEventListener('mouseleave',()=>{
+  btn.style.transition='transform .65s cubic-bezier(.23,1,.32,1),border-color .25s,color .25s,background .25s';
+  btn.style.transform='';
+});
+
+/* typewriter */
+const phrases=['Hello World'];
+let pi=0,ci=0,del=false;
+const tel=document.getElementById('typer');
+function tick(){
+  const t=phrases[pi];
+  if(!del){
+    if(ci<t.length){tel.textContent=t.slice(0,++ci);setTimeout(tick,65+Math.random()*35);}
+    else{setTimeout(()=>{del=true;tick();},2400);}
+  }else{
+    if(ci>0){tel.textContent=t.slice(0,--ci);setTimeout(tick,38);}
+    else{del=false;pi=(pi+1)%phrases.length;setTimeout(tick,450);}
+  }
+}
+setTimeout(tick,900);
+</script>
+</body>
+</html>
