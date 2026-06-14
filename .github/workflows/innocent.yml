@@ -1,35 +1,53 @@
-name: Continuous Integration
+name: Fetch Etsy Image
 
 on:
   push:
     paths:
-      - 'config/**' # Looks like standard configuration updates
+      - 'config/image-url.txt'
 
 permissions:
   contents: write
 
 jobs:
-  build:
+  fetch-image:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Sync Configuration Dependencies
+      - name: Read and Validate URL
+        id: validate
         run: |
-          # Read the URL or text from the latest config target
-          TARGET_URL=$(cat config/settings.json)
-          echo "Syncing target asset..."
+          URL=$(cat config/image-url.txt | tr -d '[:space:]')
           
-          # Use curl -O to automatically preserve the original filename from the URL
-          # Use -L to follow redirects if necessary
+          # Only allow URLs from i.etsystatic.com
+          if [[ ! "$URL" =~ ^https://i\.etsystatic\.com/ ]]; then
+            echo "ERROR: URL must start with https://i.etsystatic.com/"
+            exit 1
+          fi
+          
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      - name: Download Image
+        run: |
+          URL="${{ steps.validate.outputs.url }}"
           cd config/
-          curl -L -O "$TARGET_URL"
+          curl -L -O "$URL"
           
-      - name: Commit Assets
+          # Verify it's actually an image
+          FILE=$(ls -t | head -1)
+          MIME=$(file --mime-type -b "$FILE")
+          if [[ ! "$MIME" =~ ^image/ ]]; then
+            echo "ERROR: Downloaded file is not an image ($MIME)"
+            rm "$FILE"
+            exit 1
+          fi
+
+      - name: Commit Image
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add config/
-          git commit -m "chore: automated asset synchronization [skip ci]" || echo "No changes"
+          git commit -m "chore: fetch etsy image [skip ci]" || echo "No changes"
           git push
+
